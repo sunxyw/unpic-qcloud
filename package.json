@@ -1,0 +1,56 @@
+{
+  "name": "unpic-qcloud",
+  "version": "1.0.0",
+  "description": "Unpic image provider for Tencent Cloud COS Image Processing API",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sunxyw/unpic-qcloud.git"
+  },
+  "keywords": [
+    "unpic",
+    "image",
+    "cdn",
+    "tencent",
+    "qcloud",
+    "cos"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sunxyw/unpic-qcloud/issues"
+  },
+  "homepage": "https://github.com/sunxyw/unpic-qcloud#readme",
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "unpic": "^4.2.2",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "unpic": "^4.2.2"
+  },
+  "peerDependenciesMeta": {
+    "unpic": {
+      "optional": true
+    }
+  }
+}
