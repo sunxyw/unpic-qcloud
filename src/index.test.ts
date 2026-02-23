@@ -417,12 +417,22 @@ describe("extract", () => {
     expect(result!.operations).toEqual({ width: 200, format: "webp" });
   });
 
-  it("extracts only first pipeline segment", () => {
+  it("merges all imageMogr2 pipeline segments", () => {
     const url = `${BASE_URL}?imageMogr2/thumbnail/200x|imageMogr2/format/avif`;
     const result = extract(url);
     expect(result).not.toBeNull();
     expect(result!.src).toBe(BASE_URL);
+    expect(result!.operations).toEqual({ width: 200, format: "avif" });
+    expect(result!.pipelineSegments).toEqual([]);
+  });
+
+  it("preserves non-imageMogr2 pipeline segments", () => {
+    const url = `${BASE_URL}?imageMogr2/thumbnail/200x|watermark/2/text/dGVzdA==`;
+    const result = extract(url);
+    expect(result).not.toBeNull();
+    expect(result!.src).toBe(BASE_URL);
     expect(result!.operations).toEqual({ width: 200 });
+    expect(result!.pipelineSegments).toEqual(["watermark/2/text/dGVzdA=="]);
   });
 
   it("preserves path in extracted src", () => {
@@ -637,6 +647,20 @@ describe("transform", () => {
         `${BASE_URL}?imageMogr2/format/${fmt}`,
       );
     }
+  });
+
+  it("preserves non-imageMogr2 pipeline segments when transforming", () => {
+    const existing = `${BASE_URL}?imageMogr2/thumbnail/200x|watermark/2/text/dGVzdA==`;
+    expect(transform(existing, { width: 800, format: "webp" })).toBe(
+      `${BASE_URL}?imageMogr2/thumbnail/800x/format/webp|watermark/2/text/dGVzdA==`,
+    );
+  });
+
+  it("merges multiple imageMogr2 segments and preserves other pipeline segments", () => {
+    const existing = `${BASE_URL}?imageMogr2/thumbnail/200x|imageMogr2/format/jpg|watermark/2/text/dGVzdA==`;
+    expect(transform(existing, { format: "webp" })).toBe(
+      `${BASE_URL}?imageMogr2/thumbnail/200x/format/webp|watermark/2/text/dGVzdA==`,
+    );
   });
 });
 

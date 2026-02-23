@@ -390,15 +390,19 @@ export function parseImageMogr2(segment: string): QCloudCosOperations {
  *
  * Returns `null` when:
  * - the URL is not a COS URL, or
- * - the URL does not contain `imageMogr2` processing parameters.
+ * - the URL does not contain any processing parameters.
  *
- * When the URL contains a pipeline (`|`), only the operations from the first
- * `imageMogr2` segment (resize/format/quality) are extracted; the rest are
- * discarded so that `transform` can reconstruct a clean, merged pipeline.
+ * When the URL contains a pipeline (`|`), all `imageMogr2` segments are merged
+ * into a single {@link QCloudCosOperations} object (later segments override
+ * earlier ones for the same key). Non-`imageMogr2` pipeline segments (e.g.
+ * `watermark/…`) are preserved in `pipelineSegments` so that `generate` and
+ * `transform` can re-append them.
+ *
+ * @see https://cloud.tencent.com/document/product/436/119428
  */
 export function extract(
   url: string | URL,
-): { src: string; operations: QCloudCosOperations; options: QCloudCosOptions } | null {
+): { src: string; operations: QCloudCosOperations; options: QCloudCosOptions; pipelineSegments: string[] } | null {
   let u: URL;
   try {
     u = typeof url === "string" ? new URL(url) : url;
@@ -411,16 +415,34 @@ export function extract(
   }
 
   const rawQuery = decodeURIComponent(u.search.slice(1));
-  if (!rawQuery.startsWith("imageMogr2")) {
+  if (!rawQuery) {
     return null;
   }
 
-  // Take only the first pipeline segment for operation extraction
-  const firstSegment = rawQuery.split("|")[0];
-  const operations = parseImageMogr2(firstSegment);
+  const segments = rawQuery.split("|");
+  const pipelineSegments: string[] = [];
+  let operations: QCloudCosOperations = {};
+  let hasImageMogr2 = false;
+
+  for (const seg of segments) {
+    if (seg.startsWith("imageMogr2")) {
+      // Merge all imageMogr2 segments; later values override earlier ones
+      const parsed = parseImageMogr2(seg);
+      operations = { ...operations, ...parsed };
+      hasImageMogr2 = true;
+    } else {
+      // Preserve non-imageMogr2 segments (watermark, etc.)
+      pipelineSegments.push(seg);
+    }
+  }
+
+  if (!hasImageMogr2 && pipelineSegments.length === 0) {
+    return null;
+  }
+
   const src = `${u.origin}${u.pathname}`;
 
-  return { src, operations, options: {} };
+  return { src, operations, options: {}, pipelineSegments };
 }
 
 /**
@@ -428,14 +450,20 @@ export function extract(
  * desired operations. Any existing processing parameters on `src` are removed
  * before applying the new operations.
  *
+ * When `pipelineSegments` are provided (e.g. from {@link extract}), they are
+ * appended after the `imageMogr2` segment using the pipeline operator `|`.
+ *
  * Returns the original `src` string unchanged when:
  * - `src` is not a COS URL, or
- * - no operations produce any `imageMogr2` parameters.
+ * - no operations produce any `imageMogr2` parameters and no pipeline segments exist.
+ *
+ * @see https://cloud.tencent.com/document/product/436/119428
  */
 export function generate(
   src: string | URL,
   operations: QCloudCosOperations,
   options?: QCloudCosOptions,
+  pipelineSegments?: string[],
 ): string {
   let u: URL;
   try {
@@ -453,14 +481,22 @@ export function generate(
   const effectiveOps: QCloudCosOperations = { ...options, ...operations };
   const processing = buildImageMogr2(effectiveOps);
 
-  if (!processing) {
+  const allSegments: string[] = [];
+  if (processing) {
+    allSegments.push(processing);
+  }
+  if (pipelineSegments?.length) {
+    allSegments.push(...pipelineSegments);
+  }
+
+  if (allSegments.length === 0) {
     return baseUrl;
   }
 
   // Construct URL manually so that slashes in the query string are NOT
   // percent-encoded (COS accepts both encoded and unencoded forms, but the
   // unencoded form is more readable and what the official JS SDK uses).
-  return `${baseUrl}?${processing}`;
+  return `${baseUrl}?${allSegments.join("|")}`;
 }
 
 /**
@@ -515,5 +551,5 @@ export function transform(
   if (operations.ignoreError !== undefined)
     merged.ignoreError = operations.ignoreError;
 
-  return generate(base.src, merged);
+  return generate(base.src, merged, undefined, base.pipelineSegments);
 }
