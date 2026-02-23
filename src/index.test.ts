@@ -172,20 +172,20 @@ describe("buildImageMogr2", () => {
   // --- Combined ---
   it("builds combined resize + format + quality", () => {
     expect(buildImageMogr2({ width: 800, format: "webp", quality: 80 })).toBe(
-      "imageMogr2/thumbnail/800x/format/webp/quality/80",
+      "imageMogr2/thumbnail/800x|imageMogr2/format/webp|imageMogr2/quality/80",
     );
   });
 
   it("builds combined width + height + format + quality", () => {
     expect(
       buildImageMogr2({ width: 400, height: 300, format: "avif", quality: 90 }),
-    ).toBe("imageMogr2/thumbnail/400x300/format/avif/quality/90");
+    ).toBe("imageMogr2/thumbnail/400x300|imageMogr2/format/avif|imageMogr2/quality/90");
   });
 
   it("builds auto-orient + format (WebP recommended pattern)", () => {
     expect(
       buildImageMogr2({ width: 800, autoOrient: true, format: "webp" }),
-    ).toBe("imageMogr2/thumbnail/800x/auto-orient/format/webp");
+    ).toBe("imageMogr2/thumbnail/800x|imageMogr2/auto-orient|imageMogr2/format/webp");
   });
 
   it("builds full complex operation", () => {
@@ -200,7 +200,7 @@ describe("buildImageMogr2", () => {
         ignoreError: true,
       }),
     ).toBe(
-      "imageMogr2/crop/400x300/auto-orient/format/webp/quality/85/ignore-error/1",
+      "imageMogr2/crop/400x300|imageMogr2/auto-orient|imageMogr2/format/webp|imageMogr2/quality/85|imageMogr2/ignore-error/1",
     );
   });
 });
@@ -489,12 +489,12 @@ describe("generate", () => {
         format: "avif",
         quality: 90,
       }),
-    ).toBe(`${BASE_URL}?imageMogr2/thumbnail/400x300/format/avif/quality/90`);
+    ).toBe(`${BASE_URL}?imageMogr2/thumbnail/400x300|imageMogr2/format/avif|imageMogr2/quality/90`);
   });
 
   it("generates URL with autoOrient + format (WebP pattern)", () => {
     expect(generate(BASE_URL, { autoOrient: true, format: "webp" })).toBe(
-      `${BASE_URL}?imageMogr2/auto-orient/format/webp`,
+      `${BASE_URL}?imageMogr2/auto-orient|imageMogr2/format/webp`,
     );
   });
 
@@ -536,14 +536,14 @@ describe("generate", () => {
 
   it("generates URL with ignore-error", () => {
     expect(generate(BASE_URL, { ignoreError: true, width: 400 })).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/400x/ignore-error/1`,
+      `${BASE_URL}?imageMogr2/thumbnail/400x|imageMogr2/ignore-error/1`,
     );
   });
 
   it("strips existing processing params from src before applying new ones", () => {
     const existing = `${BASE_URL}?imageMogr2/thumbnail/200x/format/jpg`;
     expect(generate(existing, { width: 800, format: "webp" })).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/800x/format/webp`,
+      `${BASE_URL}?imageMogr2/thumbnail/800x|imageMogr2/format/webp`,
     );
   });
 
@@ -565,36 +565,36 @@ describe("transform", () => {
 
   it("generates URL when src has no existing processing", () => {
     expect(transform(BASE_URL, { width: 800, format: "webp" })).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/800x/format/webp`,
+      `${BASE_URL}?imageMogr2/thumbnail/800x|imageMogr2/format/webp`,
     );
   });
 
   it("merges new operations on top of existing ones", () => {
-    const existing = `${BASE_URL}?imageMogr2/thumbnail/400x/format/jpg/quality/70`;
+    const existing = `${BASE_URL}?imageMogr2/thumbnail/400x|imageMogr2/format/jpg|imageMogr2/quality/70`;
     expect(transform(existing, { width: 800, format: "webp" })).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/800x/format/webp/quality/70`,
+      `${BASE_URL}?imageMogr2/thumbnail/800x|imageMogr2/format/webp|imageMogr2/quality/70`,
     );
   });
 
   it("new operations override existing ones", () => {
-    const existing = `${BASE_URL}?imageMogr2/format/jpg/quality/80`;
+    const existing = `${BASE_URL}?imageMogr2/format/jpg|imageMogr2/quality/80`;
     expect(transform(existing, { format: "avif", quality: 90 })).toBe(
-      `${BASE_URL}?imageMogr2/format/avif/quality/90`,
+      `${BASE_URL}?imageMogr2/format/avif|imageMogr2/quality/90`,
     );
   });
 
   it("merges rquality independently of quality", () => {
-    const existing = `${BASE_URL}?imageMogr2/format/jpg/rquality/80`;
+    const existing = `${BASE_URL}?imageMogr2/format/jpg|imageMogr2/rquality/80`;
     const result = transform(existing, { format: "webp" });
     expect(result).toBe(
-      `${BASE_URL}?imageMogr2/format/webp/rquality/80`,
+      `${BASE_URL}?imageMogr2/format/webp|imageMogr2/rquality/80`,
     );
   });
 
   it("merges autoOrient into existing ops", () => {
-    const existing = `${BASE_URL}?imageMogr2/thumbnail/400x/format/jpg`;
+    const existing = `${BASE_URL}?imageMogr2/thumbnail/400x|imageMogr2/format/jpg`;
     expect(transform(existing, { autoOrient: true, format: "webp" })).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/400x/auto-orient/format/webp`,
+      `${BASE_URL}?imageMogr2/thumbnail/400x|imageMogr2/auto-orient|imageMogr2/format/webp`,
     );
   });
 
@@ -652,14 +652,14 @@ describe("transform", () => {
   it("preserves non-imageMogr2 pipeline segments when transforming", () => {
     const existing = `${BASE_URL}?imageMogr2/thumbnail/200x|watermark/2/text/dGVzdA==`;
     expect(transform(existing, { width: 800, format: "webp" })).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/800x/format/webp|watermark/2/text/dGVzdA==`,
+      `${BASE_URL}?imageMogr2/thumbnail/800x|imageMogr2/format/webp|watermark/2/text/dGVzdA==`,
     );
   });
 
   it("merges multiple imageMogr2 segments and preserves other pipeline segments", () => {
     const existing = `${BASE_URL}?imageMogr2/thumbnail/200x|imageMogr2/format/jpg|watermark/2/text/dGVzdA==`;
     expect(transform(existing, { format: "webp" })).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/200x/format/webp|watermark/2/text/dGVzdA==`,
+      `${BASE_URL}?imageMogr2/thumbnail/200x|imageMogr2/format/webp|watermark/2/text/dGVzdA==`,
     );
   });
 });
@@ -671,7 +671,7 @@ describe("transform", () => {
 describe("options (global defaults)", () => {
   // --- extract ---
   it("extract returns an options field", () => {
-    const url = `${BASE_URL}?imageMogr2/thumbnail/400x/format/webp`;
+    const url = `${BASE_URL}?imageMogr2/thumbnail/400x|imageMogr2/format/webp`;
     const result = extract(url);
     expect(result).not.toBeNull();
     expect(result).toHaveProperty("options");
@@ -682,7 +682,7 @@ describe("options (global defaults)", () => {
   it("generate applies option format when not in operations", () => {
     const opts: QCloudCosOptions = { format: "webp" };
     expect(generate(BASE_URL, { width: 400 }, opts)).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/400x/format/webp`,
+      `${BASE_URL}?imageMogr2/thumbnail/400x|imageMogr2/format/webp`,
     );
   });
 
@@ -696,14 +696,14 @@ describe("options (global defaults)", () => {
   it("generate applies option quality when not in operations", () => {
     const opts: QCloudCosOptions = { quality: 80 };
     expect(generate(BASE_URL, { width: 600 }, opts)).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/600x/quality/80`,
+      `${BASE_URL}?imageMogr2/thumbnail/600x|imageMogr2/quality/80`,
     );
   });
 
   it("generate applies multiple option defaults", () => {
     const opts: QCloudCosOptions = { format: "webp", quality: 85, autoOrient: true };
     expect(generate(BASE_URL, { width: 800 }, opts)).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/800x/auto-orient/format/webp/quality/85`,
+      `${BASE_URL}?imageMogr2/thumbnail/800x|imageMogr2/auto-orient|imageMogr2/format/webp|imageMogr2/quality/85`,
     );
   });
 
@@ -722,7 +722,7 @@ describe("options (global defaults)", () => {
   it("transform applies option format when not in operations or existing URL", () => {
     const opts: QCloudCosOptions = { format: "webp" };
     expect(transform(BASE_URL, { width: 400 }, opts)).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/400x/format/webp`,
+      `${BASE_URL}?imageMogr2/thumbnail/400x|imageMogr2/format/webp`,
     );
   });
 
@@ -746,7 +746,7 @@ describe("options (global defaults)", () => {
   it("transform passes options to generate when src has no existing processing", () => {
     const opts: QCloudCosOptions = { quality: 90 };
     expect(transform(BASE_URL, { width: 800 }, opts)).toBe(
-      `${BASE_URL}?imageMogr2/thumbnail/800x/quality/90`,
+      `${BASE_URL}?imageMogr2/thumbnail/800x|imageMogr2/quality/90`,
     );
   });
 });

@@ -275,7 +275,9 @@ export function buildImageMogr2(ops: QCloudCosOperations): string {
     return "";
   }
 
-  return `imageMogr2/${parts.join("/")}`;
+  // Each operation becomes its own imageMogr2 pipeline segment, joined by |
+  // e.g. imageMogr2/thumbnail/800x|imageMogr2/format/webp|imageMogr2/quality/80
+  return parts.map((p) => `imageMogr2/${p}`).join("|");
 }
 
 /**
