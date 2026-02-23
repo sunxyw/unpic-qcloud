@@ -7,6 +7,7 @@ import {
   parseImageMogr2,
   transform,
   type QCloudCosOperations,
+  type QCloudCosOptions,
 } from "./index.js";
 
 // ---------------------------------------------------------------------------
@@ -636,5 +637,92 @@ describe("transform", () => {
         `${BASE_URL}?imageMogr2/format/${fmt}`,
       );
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// options (global defaults)
+// ---------------------------------------------------------------------------
+
+describe("options (global defaults)", () => {
+  // --- extract ---
+  it("extract returns an options field", () => {
+    const url = `${BASE_URL}?imageMogr2/thumbnail/400x/format/webp`;
+    const result = extract(url);
+    expect(result).not.toBeNull();
+    expect(result).toHaveProperty("options");
+    expect(result!.options).toEqual({});
+  });
+
+  // --- generate with options ---
+  it("generate applies option format when not in operations", () => {
+    const opts: QCloudCosOptions = { format: "webp" };
+    expect(generate(BASE_URL, { width: 400 }, opts)).toBe(
+      `${BASE_URL}?imageMogr2/thumbnail/400x/format/webp`,
+    );
+  });
+
+  it("generate: operation format overrides option format", () => {
+    const opts: QCloudCosOptions = { format: "webp" };
+    expect(generate(BASE_URL, { format: "avif" }, opts)).toBe(
+      `${BASE_URL}?imageMogr2/format/avif`,
+    );
+  });
+
+  it("generate applies option quality when not in operations", () => {
+    const opts: QCloudCosOptions = { quality: 80 };
+    expect(generate(BASE_URL, { width: 600 }, opts)).toBe(
+      `${BASE_URL}?imageMogr2/thumbnail/600x/quality/80`,
+    );
+  });
+
+  it("generate applies multiple option defaults", () => {
+    const opts: QCloudCosOptions = { format: "webp", quality: 85, autoOrient: true };
+    expect(generate(BASE_URL, { width: 800 }, opts)).toBe(
+      `${BASE_URL}?imageMogr2/thumbnail/800x/auto-orient/format/webp/quality/85`,
+    );
+  });
+
+  it("generate with no operations but option defaults still produces URL", () => {
+    const opts: QCloudCosOptions = { format: "webp" };
+    expect(generate(BASE_URL, {}, opts)).toBe(
+      `${BASE_URL}?imageMogr2/format/webp`,
+    );
+  });
+
+  it("generate returns base URL when no operations and no options", () => {
+    expect(generate(BASE_URL, {})).toBe(BASE_URL);
+  });
+
+  // --- transform with options ---
+  it("transform applies option format when not in operations or existing URL", () => {
+    const opts: QCloudCosOptions = { format: "webp" };
+    expect(transform(BASE_URL, { width: 400 }, opts)).toBe(
+      `${BASE_URL}?imageMogr2/thumbnail/400x/format/webp`,
+    );
+  });
+
+  it("transform: existing URL format overrides option format", () => {
+    const existing = `${BASE_URL}?imageMogr2/format/jpg`;
+    const opts: QCloudCosOptions = { format: "webp" };
+    // Existing URL has format/jpg; option wants webp; existing should win
+    expect(transform(existing, {}, opts)).toBe(
+      `${BASE_URL}?imageMogr2/format/jpg`,
+    );
+  });
+
+  it("transform: explicit operation overrides both option and existing URL", () => {
+    const existing = `${BASE_URL}?imageMogr2/format/jpg`;
+    const opts: QCloudCosOptions = { format: "webp" };
+    expect(transform(existing, { format: "avif" }, opts)).toBe(
+      `${BASE_URL}?imageMogr2/format/avif`,
+    );
+  });
+
+  it("transform passes options to generate when src has no existing processing", () => {
+    const opts: QCloudCosOptions = { quality: 90 };
+    expect(transform(BASE_URL, { width: 800 }, opts)).toBe(
+      `${BASE_URL}?imageMogr2/thumbnail/800x/quality/90`,
+    );
   });
 });

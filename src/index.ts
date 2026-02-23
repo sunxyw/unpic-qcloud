@@ -135,6 +135,34 @@ export interface QCloudCosOperations extends Operations<QCloudCosFormat> {
 }
 
 /**
+ * Global default options for QCloud COS image processing.
+ *
+ * These values serve as defaults for `generate` and `transform` calls:
+ * any field explicitly provided in the `operations` argument will always
+ * override the corresponding option here.
+ *
+ * @example
+ * // Always output WebP with 85% quality unless the caller says otherwise
+ * generate(src, { width: 800 }, { format: "webp", quality: 85 });
+ */
+export interface QCloudCosOptions {
+  /** Default output format. */
+  format?: QCloudCosFormat;
+  /** Default thumbnail scaling mode when both width and height are set. */
+  thumbnailMode?: QCloudCosThumbnailMode;
+  /** Default absolute image quality (0–100). */
+  quality?: number | string;
+  /** Default relative image quality (0–100). */
+  rquality?: number;
+  /** Default minimum image quality (0–100). */
+  lquality?: number;
+  /** Auto-orient images based on EXIF data by default. */
+  autoOrient?: boolean;
+  /** Return original image on processing failures by default. */
+  ignoreError?: boolean;
+}
+
+/**
  * Regex that matches a Tencent Cloud COS object URL hostname.
  * Handles both standard COS endpoints:
  *   {bucket}.cos.{region}.myqcloud.com
@@ -370,7 +398,7 @@ export function parseImageMogr2(segment: string): QCloudCosOperations {
  */
 export function extract(
   url: string | URL,
-): { src: string; operations: QCloudCosOperations } | null {
+): { src: string; operations: QCloudCosOperations; options: QCloudCosOptions } | null {
   let u: URL;
   try {
     u = typeof url === "string" ? new URL(url) : url;
@@ -392,7 +420,7 @@ export function extract(
   const operations = parseImageMogr2(firstSegment);
   const src = `${u.origin}${u.pathname}`;
 
-  return { src, operations };
+  return { src, operations, options: {} };
 }
 
 /**
@@ -407,6 +435,7 @@ export function extract(
 export function generate(
   src: string | URL,
   operations: QCloudCosOperations,
+  options?: QCloudCosOptions,
 ): string {
   let u: URL;
   try {
@@ -420,7 +449,9 @@ export function generate(
   }
 
   const baseUrl = `${u.origin}${u.pathname}`;
-  const processing = buildImageMogr2(operations);
+  // Options provide defaults; explicit operations always take precedence.
+  const effectiveOps: QCloudCosOperations = { ...options, ...operations };
+  const processing = buildImageMogr2(effectiveOps);
 
   if (!processing) {
     return baseUrl;
@@ -455,13 +486,16 @@ export function generate(
 export function transform(
   src: string | URL,
   operations: QCloudCosOperations,
+  options?: QCloudCosOptions,
 ): string {
   const base = extract(src);
   if (!base) {
-    return generate(src, operations);
+    return generate(src, operations, options);
   }
 
-  const merged: QCloudCosOperations = { ...base.operations };
+  // Options are defaults; existing URL operations override them; new operations
+  // have the highest priority and override both.
+  const merged: QCloudCosOperations = { ...options, ...base.operations };
 
   // Apply only the defined fields from the new operations (undefined = keep existing)
   if (operations.width !== undefined) merged.width = operations.width;
