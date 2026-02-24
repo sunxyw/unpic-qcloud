@@ -405,9 +405,12 @@ export function parseImageMogr2(segment: string): QCloudCosOperations {
  *
  * @see https://cloud.tencent.com/document/product/436/119428
  */
-export function extract(
-  url: string | URL,
-): { src: string; operations: QCloudCosOperations; options: QCloudCosOptions; pipelineSegments: string[] } | null {
+export function extract(url: string | URL): {
+  src: string;
+  operations: QCloudCosOperations;
+  options: QCloudCosOptions;
+  pipelineSegments: string[];
+} | null {
   let u: URL;
   try {
     u = typeof url === "string" ? new URL(url) : url;
@@ -529,10 +532,12 @@ export function transform(
   operations: QCloudCosOperations,
   options?: QCloudCosOptions,
 ): string {
-  const base = extract(src);
-  if (!base) {
-    return generate(src, operations, options);
-  }
+  const base = extract(src) ?? {
+    src: src.toString(),
+    operations: {},
+    options: {},
+    pipelineSegments: [],
+  };
 
   // Options are defaults; existing URL operations override them; new operations
   // have the highest priority and override both.
