@@ -6,6 +6,7 @@ import type { Operations } from "unpic";
  * Standard formats: `jpg`/`jpeg` (equivalent), `png`, `webp`, `gif`, `bmp`, `tiff`, `apng`
  * Advanced compression formats (require CI activation): `avif`, `heif`, `heic`, `tpg`, `astc`
  * Special: `src` (keep original format), `psd` (persistent processing only)
+ * Pseudo-format: `raw` — removes the format operation entirely (no format conversion)
  *
  * @see https://cloud.tencent.com/document/product/460/36543
  * @see https://cloud.tencent.com/document/product/436/119347
@@ -26,6 +27,7 @@ export type QCloudCosFormat =
   | "astc"
   | "psd"
   | "src"
+  | "raw"
   | (string & {});
 
 /**
@@ -251,7 +253,8 @@ export function buildImageMogr2(ops: QCloudCosOperations): string {
   }
 
   // --- Format ---
-  if (ops.format) {
+  // "raw" is a pseudo-format: it suppresses the format operation entirely.
+  if (ops.format && ops.format !== "raw") {
     parts.push(`format/${ops.format}`);
   }
 
