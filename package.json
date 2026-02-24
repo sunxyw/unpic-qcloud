@@ -1,6 +1,6 @@
 {
   "name": "unpic-qcloud",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Unpic image provider for Tencent Cloud COS Image Processing API",
   "type": "module",
   "main": "./dist/index.cjs",
