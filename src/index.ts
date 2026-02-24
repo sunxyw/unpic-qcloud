@@ -129,6 +129,12 @@ export interface QCloudCosOperations extends Operations<QCloudCosFormat> {
    */
   lquality?: number;
   /**
+   * When set to `true`, returns the original image if the processed image
+   * is larger than the original (i.e. skip processing when it would increase size).
+   * @see https://cloud.tencent.com/document/product/460/36543
+   */
+  minsize?: boolean;
+  /**
    * When set to `true`, returns the original image instead of an error on
    * processing failures (e.g. file too large, param out of range).
    * @see https://cloud.tencent.com/document/product/460/36544
@@ -160,6 +166,8 @@ export interface QCloudCosOptions {
   lquality?: number;
   /** Auto-orient images based on EXIF data by default. */
   autoOrient?: boolean;
+  /** Return original image if processed result is larger by default. */
+  minsize?: boolean;
   /** Return original image on processing failures by default. */
   ignoreError?: boolean;
 }
@@ -269,6 +277,11 @@ export function buildImageMogr2(ops: QCloudCosOperations): string {
     parts.push(`lquality/${ops.lquality}`);
   }
 
+  // --- Minsize ---
+  if (ops.minsize) {
+    parts.push("minsize/1");
+  }
+
   // --- Ignore error ---
   if (ops.ignoreError) {
     parts.push("ignore-error/1");
@@ -289,7 +302,7 @@ export function buildImageMogr2(ops: QCloudCosOperations): string {
  *
  * Recognised operations: `thumbnail`, `crop`, `iradius`, `rradius`,
  * `auto-orient`, `rotate`, `flip`, `format`, `quality`, `rquality`,
- * `lquality`, `ignore-error`.
+ * `lquality`, `minsize`, `ignore-error`.
  *
  * Unknown tokens are silently ignored.
  */
@@ -382,6 +395,9 @@ export function parseImageMogr2(segment: string): QCloudCosOperations {
       i++;
     } else if (token === "ignore-error") {
       ops.ignoreError = true;
+      if (next === "1") i++;
+    } else if (token === "minsize") {
+      ops.minsize = true;
       if (next === "1") i++;
     }
   }
@@ -560,6 +576,7 @@ export function transform(
   if (operations.rradius !== undefined) merged.rradius = operations.rradius;
   if (operations.ignoreError !== undefined)
     merged.ignoreError = operations.ignoreError;
+  if (operations.minsize !== undefined) merged.minsize = operations.minsize;
 
   return generate(base.src, merged, undefined, base.pipelineSegments);
 }

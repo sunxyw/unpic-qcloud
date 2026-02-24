@@ -169,6 +169,13 @@ describe("buildImageMogr2", () => {
     );
   });
 
+  // --- Minsize ---
+  it("builds minsize flag", () => {
+    expect(buildImageMogr2({ minsize: true })).toBe(
+      "imageMogr2/minsize/1",
+    );
+  });
+
   // --- Combined ---
   it("builds combined resize + format + quality", () => {
     expect(buildImageMogr2({ width: 800, format: "webp", quality: 80 })).toBe(
@@ -324,6 +331,12 @@ describe("parseImageMogr2", () => {
   it("parses ignore-error", () => {
     expect(parseImageMogr2("imageMogr2/ignore-error/1")).toEqual({
       ignoreError: true,
+    });
+  });
+
+  it("parses minsize", () => {
+    expect(parseImageMogr2("imageMogr2/minsize/1")).toEqual({
+      minsize: true,
     });
   });
 
